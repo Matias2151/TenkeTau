@@ -87,6 +87,12 @@
     .action-buttons{display:flex;gap:6px;align-items:center}
     .action-bar{display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap}
     .search-box{display:flex;gap:6px}
+    .upload-form{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .upload-form input[type="file"]{padding:6px 10px;border:1px solid #d0d7de;border-radius:8px;background:#fff;cursor:pointer}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+    .upload-form{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .upload-form input[type="file"]{padding:6px 10px;border:1px solid #d0d7de;border-radius:8px;background:#fff;cursor:pointer}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
 
     /* Responsive */
     @media (max-width: 768px){
@@ -125,6 +131,22 @@
       <div class="user-info"><span>User</span> <i class="fas fa-user-circle"></i></div>
     </header>
 
+    {% if messages %}
+    <div id="messages">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if messages %}
+    <div id="messages">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- Tarjetas -->
     <div class="stats-grid">
       <div class="stat-card info">
@@ -156,6 +178,19 @@
         <button class="btn btn-primary" onclick="abrirModal('addProductoModal')">
           <i class="fas fa-plus-circle"></i> Agregar Producto/Servicio
         </button>
+
+        <a class="btn btn-secondary" href="{% url 'productoyservicioapp:descargar_plantilla_productos' %}">
+          <i class="fas fa-file-download"></i> Descargar plantilla Excel
+        </a>
+
+        <form class="upload-form" method="POST" action="{% url 'productoyservicioapp:cargar_productos_excel' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <label for="archivo_excel" class="sr-only">Archivo Excel</label>
+          <input type="file" id="archivo_excel" name="archivo_excel" accept=".xlsx" required>
+          <button type="submit" class="btn btn-secondary">
+            <i class="fas fa-upload"></i> Importar Excel
+          </button>
+        </form>
       </div>
 
       <table class="tabla-proyectos">

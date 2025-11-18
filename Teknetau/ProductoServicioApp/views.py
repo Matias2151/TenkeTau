@@ -1,18 +1,19 @@
 # ProductoServicioApp/views.py
 from decimal import Decimal, ROUND_HALF_UP
 
-from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
 from django.db import transaction
-from django.db.models import Sum, Prefetch
+from django.db.models import Prefetch, Sum
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import ProductoServicio, Abastecimiento
+from openpyxl import Workbook, load_workbook
+
 from .forms import ProductoServicioForm
+from .models import Abastecimiento, ProductoServicio
 
 # 👇 Importamos el modelo de la otra app para prefetchear proveedores con su dirección
 from EmpresaPersonaApp.models import EmpresaPersona
-
-from django.http import HttpResponse
-from openpyxl import Workbook
 
 IVA_FACTOR = Decimal("1.19")   # 19% IVA
 ROUND = lambda x: x.quantize(Decimal("1"), rounding=ROUND_HALF_UP)  # redondeo a entero
@@ -157,28 +158,217 @@ def descargar_plantilla_productos(request):
 
     # Encabezados de la tabla (según tu imagen)
     headers = [
-        "PRODU_ID",
         "PRODU_NOM",
         "PRODU_DESC",
         "PRODU_BRUTO",
-        "PRODU_NETO",
-        "PRODU_MA",
         "PRODU_DSCTO",
+        "EMPPE_ID (proveedor)",
     ]
 
     # Agregar encabezados en la primera fila
     ws.append(headers)
 
-    # Si quieres dejar PRODU_ID vacío porque es autoincremental,
-    # es solo una columna de referencia para importar; puedes borrarla de la lista si no la quieres.
+    # Fila de ejemplo para guiar el llenado
+    ws.append([
+        "Nombre producto o servicio",
+        "Descripción o detalles",
+        10000,
+        0,
+        None,  # Dejar en blanco u optar por un ID numérico de proveedor existente
+    ])
 
     # Preparar respuesta HTTP para descarga
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-        response["Content-Disposition"] = (
+    )
+    response["Content-Disposition"] = (
         'attachment; filename="plantilla_productos_servicios.xlsx"'
-        )
+    )
 
-        wb.save(response)
+    wb.save(response)
     return response
+
+
+@transaction.atomic
+def cargar_productos_excel(request):
+    if request.method != "POST":
+        messages.error(request, "Debes seleccionar un archivo Excel para importar.")
+        return redirect("productoyservicioapp:lista_productos")
+
+    archivo = request.FILES.get("archivo_excel")
+    if not archivo:
+        messages.error(request, "Selecciona un archivo .xlsx con la plantilla de productos.")
+        return redirect("productoyservicioapp:lista_productos")
+
+    try:
+        workbook = load_workbook(archivo)
+    except Exception:
+        messages.error(request, "No se pudo leer el archivo. Verifica que sea un .xlsx válido.")
+        return redirect("productoyservicioapp:lista_productos")
+
+    sheet = workbook.active
+    expected_headers = ["PRODU_NOM", "PRODU_DESC", "PRODU_BRUTO", "PRODU_DSCTO", "EMPPE_ID (proveedor)"]
+    headers = [cell.value for cell in next(sheet.iter_rows(min_row=1, max_row=1))]
+
+    if headers[: len(expected_headers)] != expected_headers:
+        messages.error(
+            request,
+            "La plantilla no coincide con el formato esperado. Descarga nuevamente la plantilla y vuelve a intentarlo.",
+        )
+        return redirect("productoyservicioapp:lista_productos")
+
+    creados = 0
+    errores: list[str] = []
+
+    for row_number, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+        nombre, descripcion, bruto, dscto, proveedor_id = row[:5]
+
+        if not any(row):
+            continue  # fila completamente vacía
+
+        if not nombre or not descripcion or bruto is None:
+            errores.append(f"Fila {row_number}: nombre, descripción y valor bruto son obligatorios.")
+            continue
+
+        try:
+            bruto_decimal = Decimal(bruto)
+        except Exception:
+            errores.append(f"Fila {row_number}: el valor bruto debe ser numérico.")
+            continue
+
+        dscto_value = dscto or 0
+        try:
+            dscto_decimal = Decimal(dscto_value)
+        except Exception:
+            errores.append(f"Fila {row_number}: el descuento debe ser un número entre 0 y 100.")
+            continue
+
+        if dscto_decimal < 0 or dscto_decimal > 100:
+            errores.append(f"Fila {row_number}: el descuento debe estar entre 0 y 100%.")
+            continue
+
+        neto, iva, bruto_final = _recalcula_campos(bruto_decimal, dscto_decimal)
+
+        producto = ProductoServicio(
+            produ_nom=str(nombre).strip(),
+            produ_desc=str(descripcion).strip(),
+            produ_bruto=bruto_final,
+            produ_neto=neto,
+            produ_iva=iva,
+            produ_dscto=int(dscto_decimal),
+        )
+        producto.save()
+        creados += 1
+
+        if proveedor_id:
+            try:
+                proveedor_id_int = int(proveedor_id)
+            except (TypeError, ValueError):
+                errores.append(
+                    f"Fila {row_number}: el ID de proveedor debe ser numérico; el producto se creó sin proveedor."
+                )
+                continue
+
+            proveedor = EmpresaPersona.objects.filter(pk=proveedor_id_int).first()
+            if proveedor:
+                Abastecimiento.objects.get_or_create(emppe=proveedor, produ=producto)
+            else:
+                errores.append(
+                    f"Fila {row_number}: no existe proveedor con ID {proveedor_id_int}; el producto se creó sin proveedor."
+                )
+
+    if creados:
+        messages.success(request, f"Se importaron {creados} productos/servicios desde el Excel.")
+
+    if errores:
+        for err in errores:
+            messages.warning(request, err)
+
+    return redirect("productoyservicioapp:lista_productos")
+
+@transaction.atomic
+def cargar_productos_excel(request):
+    if request.method != "POST":
+        messages.error(request, "Debes seleccionar un archivo Excel para importar.")
+        return redirect("productoyservicioapp:lista_productos")
+
+    archivo = request.FILES.get("archivo_excel")
+    if not archivo:
+        messages.error(request, "Selecciona un archivo .xlsx con la plantilla de productos.")
+        return redirect("productoyservicioapp:lista_productos")
+
+    try:
+        workbook = load_workbook(archivo)
+    except Exception:
+        messages.error(request, "No se pudo leer el archivo. Verifica que sea un .xlsx válido.")
+        return redirect("productoyservicioapp:lista_productos")
+
+    sheet = workbook.active
+    expected_headers = ["PRODU_NOM", "PRODU_DESC", "PRODU_BRUTO", "PRODU_DSCTO", "EMPPE_ID (proveedor)"]
+    headers = [cell.value for cell in next(sheet.iter_rows(min_row=1, max_row=1))]
+
+    if headers[: len(expected_headers)] != expected_headers:
+        messages.error(
+            request,
+            "La plantilla no coincide con el formato esperado. Descarga nuevamente la plantilla y vuelve a intentarlo.",
+        )
+        return redirect("productoyservicioapp:lista_productos")
+
+    creados = 0
+    errores: list[str] = []
+
+    for row_number, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+        nombre, descripcion, bruto, dscto, proveedor_id = row[:5]
+
+        if not any(row):
+            continue  # fila completamente vacía
+
+        if not nombre or not descripcion or bruto is None:
+            errores.append(f"Fila {row_number}: nombre, descripción y valor bruto son obligatorios.")
+            continue
+
+        try:
+            bruto_decimal = Decimal(bruto)
+        except Exception:
+            errores.append(f"Fila {row_number}: el valor bruto debe ser numérico.")
+            continue
+
+        dscto_value = dscto or 0
+        try:
+            dscto_decimal = Decimal(dscto_value)
+        except Exception:
+            errores.append(f"Fila {row_number}: el descuento debe ser un número entre 0 y 100.")
+            continue
+
+        if dscto_decimal < 0 or dscto_decimal > 100:
+            errores.append(f"Fila {row_number}: el descuento debe estar entre 0 y 100%.")
+            continue
+
+        neto, iva, bruto_final = _recalcula_campos(bruto_decimal, dscto_decimal)
+
+        producto = ProductoServicio(
+            produ_nom=str(nombre).strip(),
+            produ_desc=str(descripcion).strip(),
+            produ_bruto=bruto_final,
+            produ_neto=neto,
+            produ_iva=iva,
+            produ_dscto=int(dscto_decimal),
+        )
+        producto.save()
+        creados += 1
+
+        if proveedor_id:
+            proveedor = EmpresaPersona.objects.filter(pk=proveedor_id).first()
+            if proveedor:
+                Abastecimiento.objects.get_or_create(emppe=proveedor, produ=producto)
+            else:
+                errores.append(f"Fila {row_number}: no existe proveedor con ID {proveedor_id}; el producto se creó sin proveedor.")
+
+    if creados:
+        messages.success(request, f"Se importaron {creados} productos/servicios desde el Excel.")
+
+    if errores:
+        for err in errores:
+            messages.warning(request, err)
+
+    return redirect("productoyservicioapp:lista_productos")
