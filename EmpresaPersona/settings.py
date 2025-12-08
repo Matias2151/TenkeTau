@@ -86,7 +86,7 @@ WSGI_APPLICATION = 'EmpresaPersona.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'testdb',
+        'NAME': 'teknetau$default',
         'USER': 'teknetau',
         'PASSWORD': 'LGX5=Z3(xqq3v9-',
         'HOST': 'teknetau.mysql.pythonanywhere-services.com',
@@ -165,5 +165,6 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Dirección que aparecerá como remitente en el correo impreso en consola
 DEFAULT_FROM_EMAIL = "no-reply@teknetau.cl"
+
 
 
