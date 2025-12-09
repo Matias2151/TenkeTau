@@ -88,7 +88,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'teknetau$default',
         'USER': 'teknetau',
-        'PASSWORD': 'LGX5=Z3(xqq3v9-',
+        'PASSWORD': 'sql12345678',
         'HOST': 'teknetau.mysql.pythonanywhere-services.com',
         'PORT': '3306',
         'OPTIONS': {
@@ -171,6 +171,7 @@ EMAIL_HOST_PASSWORD = "teknetauproyecto123"        # tu contraseña real del cor
 
 # Dirección que aparecerá como remitente en el correo impreso en consola
 DEFAULT_FROM_EMAIL = "no-reply@teknetau.cl"
+
 
 
 
