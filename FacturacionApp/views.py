@@ -1,5 +1,5 @@
 # FacturacionApp/views.py
-from annotated_types import doc
+#from annotated_types import doc
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
@@ -249,7 +249,7 @@ def crear_documento(request):
             pagado = cant
 
         DetalleDoc.objects.create(
-            documento=doc,
+            documento=documento,
             producto=producto,
             dedoc_cant=cant,
             dedoc_pagado=pagado,
@@ -682,5 +682,6 @@ def api_quitar_documento(request, doc_id):
     # quitar relación con proyecto
     doc.proyecto = None
     doc.save(update_fields=["proyecto"])
+
 
     return JsonResponse({"success": True})
