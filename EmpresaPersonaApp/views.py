@@ -167,7 +167,7 @@ def login_view(request):
         username = form.cleaned_data["usuario"].strip()
         password = form.cleaned_data["password"]
 
-        usuario = UsuarioSistema.objects.filter(username_iexact=username).first()
+        usuario = UsuarioSistema.objects.filter(username__iexact=username).first()
 
         if usuario is None:
             messages.error(request, "Usuario o contraseña incorrectos.")
@@ -383,4 +383,5 @@ def obtener_personas_json(request):
         })
 
     return JsonResponse(data, safe=False)
+
 
