@@ -90,7 +90,7 @@ def actualizar_password(request, pk):
     if request.method == "POST" and form.is_valid():
         # ✅ Solo guardamos la contraseña encriptada
         usuario.set_password(form.cleaned_data["password"])
-        usuario.save(update_fields=["password"])
+        usuario.save(update_fields=["password", "password_visible"])
 
         messages.success(request, f"Contraseña de '{usuario.username}' actualizada.")
     else:
@@ -226,5 +226,6 @@ def verificar_codigo(request):
             request,
             "Código inválido o expirado. Solicita uno nuevo e inténtalo nuevamente."
         )
+
 
     return render(request, "login/verificar_codigo.html", {"form": form})
