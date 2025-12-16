@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-+2xn7co9nq^07c5vuy^16*3=16b=i%+jx_8oa5fwz4z(x@ylvy
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['teknetau.pythonanywhere.com']
 
 
 # Application definition
@@ -86,10 +86,10 @@ WSGI_APPLICATION = 'EmpresaPersona.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'testdb',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',
+        'NAME': 'teknetau$default',
+        'USER': 'teknetau',
+        'PASSWORD': 'sql12345678',
+        'HOST': 'teknetau.mysql.pythonanywhere-services.com',
         'PORT': '3306',
         'OPTIONS': {
             'charset': 'utf8mb4',             
@@ -165,3 +165,4 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Dirección que aparecerá como remitente en el correo impreso en consola
 DEFAULT_FROM_EMAIL = "no-reply@teknetau.cl"
+
