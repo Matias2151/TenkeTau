@@ -1,0 +1,1171 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Detalles de {{ persona.emppe_nom }} - TEKNETAU</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+  <link rel="stylesheet" href="{% static 'style.css' %}"/>
+
+    <style>
+    /* ======================================================
+   BASE
+   ====================================================== */
+
+    .stats-grid{
+        display:grid;
+        grid-template-columns: repeat(4,1fr);
+        gap:8px;
+        margin: 2px 0 6px;
+    }
+
+    @media(max-width:1200px){
+        .stats-grid{
+            grid-template-columns: repeat(2,1fr);
+        }
+    }
+
+
+    .stat-card{
+        background:#fff;
+        border-radius:12px;
+        padding:16px;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        border:1px solid #e0e0e0;
+        box-shadow:0 3px 10px rgba(0,0,0,0.05);
+        color:#2c3e50;
+    }
+
+    .stat-card .stat-icon{
+        font-size:32px;
+        opacity:.7;
+    }
+
+    .stat-number{
+        font-size:1.4rem;
+        font-weight:bold;
+        color:#2c3e50;
+    }
+
+    /* ======================================================
+    CARDS PRINCIPALES
+    ====================================================== */
+
+    .content-card{
+        background:#fff;
+        padding:20px;
+        border-radius:14px;
+        margin-top:20px;
+        box-shadow:0 4px 12px rgba(0,0,0,.1);
+    }
+
+    .content-card.full-width{
+        width:100%;
+    }
+
+    .card-row-two{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:25px;
+        margin-top:20px;
+    }
+
+    @media(max-width:1000px){
+        .card-row-two{
+            grid-template-columns:1fr;
+        }
+    }
+
+    /* ======================================================
+    INFO GENERAL PERSONA
+    ====================================================== */
+
+    .info-grid{
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:12px 24px;
+        padding:10px 5px;
+    }
+
+    .info-row strong{
+        color:#2c3e50;
+        font-weight:600;
+        margin-right:6px;
+    }
+
+    .btn-edit{
+        background:transparent;
+        border:none;
+        color:#21618c;
+        font-size:1.1rem;
+        cursor:pointer;
+        padding:6px;
+    }
+
+    .btn-edit:hover{
+        color:#154360;
+    }
+
+    /* ======================================================
+    PROYECTOS ASOCIADOS
+    ====================================================== */
+
+    .project-list{
+        max-height:320px;
+        overflow-y:auto;
+        margin-top:10px;
+    }
+
+    .project-row{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        padding:12px 14px;
+        background:#fff;
+        border:1px solid #e0e0e0;
+        border-radius:10px;
+        margin-bottom:10px;
+        cursor:pointer;
+        transition:.2s ease;
+    }
+
+    .project-row:hover{
+        background:#f8f9fa;
+        box-shadow:0 4px 10px rgba(0,0,0,.08);
+    }
+
+    .project-row-title{
+        font-weight:600;
+        color:#2c3e50;
+    }
+
+    /* ======================================================
+    DOCUMENTOS ASOCIADOS (FULL WIDTH + 2 POR FILA)
+    ====================================================== */
+
+    .document-btn-grid{
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:14px;
+        margin-top:12px;
+    }
+
+    @media(max-width:1000px){
+        .document-btn-grid{
+            grid-template-columns:1fr;
+        }
+    }
+
+    .document-btn{
+        width:100%;
+        background:#fff;
+        border:2px solid #bdc3c7;
+        border-radius:12px;
+        padding:14px 16px;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        cursor:pointer;
+        transition:.2s ease;
+        box-shadow:0 3px 10px rgba(0,0,0,.05);
+        color:#2c3e50;
+        font-weight:600;
+    }
+
+    .document-btn:hover{
+        background:#f8f9fa;
+        transform:translateY(-2px);
+        box-shadow:0 6px 14px rgba(0,0,0,.10);
+    }
+
+
+    .doc-btn-title{
+        display:flex;
+        flex-direction:column;
+        gap:2px;
+    }
+
+    .doc-btn-title span{
+        font-size:.8rem;
+        color:#7f8c8d;
+    }
+
+    .doc-btn-total{
+        font-size:1.1rem;
+        font-weight:700;
+        white-space:nowrap;
+    }
+
+    /* ======================================================
+    MODAL BASE
+    ====================================================== */
+
+    .modal{
+        display:none;
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.45);
+        justify-content:center;
+        align-items:center;
+        z-index:9999;
+    }
+
+    .modal.show{
+        display:flex;
+    }
+
+    .modal-content{
+        background:#fff;
+        border-radius:14px;
+        width:95%;
+        max-width:900px;
+        box-shadow:0 10px 30px rgba(0,0,0,.25);
+        animation:fadeIn .25s ease;
+    }
+
+    .modal-header{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        padding:14px 18px;
+        border-bottom:1px solid #eee;
+    }
+
+    .modal-header h3{
+        margin:0;
+        font-size:1.1rem;
+        color:#2c3e50;
+    }
+
+    .close-modal{
+        background:none;
+        border:none;
+        font-size:1.4rem;
+        cursor:pointer;
+        color:#7f8c8d;
+    }
+
+    .modal-body{
+        padding:18px;
+    }
+
+    /* ======================================================
+    MODAL DOCUMENTO – DETALLE
+    ====================================================== */
+
+    .detalle-grid{
+        display:grid;
+        grid-template-columns:repeat(2,1fr);
+        gap:16px;
+        margin-bottom:20px;
+    }
+
+    .detalle-item{
+        display:flex;
+        flex-direction:column;
+    }
+
+    .detalle-label{
+        font-size:.75rem;
+        color:#7f8c8d;
+        text-transform:uppercase;
+        margin-bottom:4px;
+    }
+
+    .detalle-value{
+        font-size:.95rem;
+        font-weight:600;
+        color:#2c3e50;
+    }
+
+    .detalle-box{
+        border-top:1px solid #e0e0e0;
+        padding-top:15px;
+        margin-top:10px;
+    }
+
+    .doc-info-grid{
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:10px 18px;
+        margin-bottom:12px;
+    }
+
+    .doc-info-row strong{
+        font-weight:700;
+        color:#2c3e50;
+        margin-right:6px;
+    }
+
+    .doc-section-title{
+        margin:14px 0 8px;
+        font-size:.95rem;
+        font-weight:800;
+        color:#2c3e50;
+    }
+
+    /* Tabla detalle */
+    .doc-table{
+        width:100%;
+        border-collapse:collapse;
+        font-size:.9rem;
+    }
+
+    .doc-table th,
+    .doc-table td{
+        padding:8px 6px;
+        border-bottom:1px solid #eee;
+        text-align:left;
+    }
+
+    .doc-table th{
+        background:#fafafa;
+        font-weight:800;
+        color:#2c3e50;
+    }
+
+    /* ==============================
+   BOTONES DE DOCUMENTO
+   ============================== */
+
+
+    /* ===== COLORES POR TIPO ===== */
+
+    .document-btn.doc-ingreso{
+        border-color: #2ecc71;     /* VERDE */
+    }
+
+    .document-btn.doc-egreso{
+        border-color: #e74c3c;     /* ROJO */
+    }
+
+
+    /* ======================================================
+    ANIMACIONES
+    ====================================================== */
+
+    @keyframes fadeIn{
+        from{opacity:0;transform:translateY(-10px)}
+        to{opacity:1;transform:translateY(0)}
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- Sidebar igual al original -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <img src="{% static 'logo.png' %}" alt="Logo TEKNETAU" class="sidebar-logo">
+    </div>
+    <ul class="sidebar-nav">
+      <li><a href="{% url 'dashboard' %}"><i class="fas fa-tachometer-alt"></i> Panel de Control</a></li>
+      <li class="active"><a href="{% url 'empresa_clientes' %}"><i class="fas fa-users"></i> Empresa / Persona</a></li>
+      <li><a href="{% url 'productoyservicioapp:lista_productos' %}"><i class="fas fa-box-open"></i> Productos / Servicios</a></li>
+      <li><a href="{% url 'proyectoapp:lista_proyectos' %}"><i class="fas fa-briefcase"></i> Proyectos</a></li>
+      <li><a href="{% url 'facturacionapp:lista_documentos' %}"><i class="fas fa-file-invoice-dollar"></i> Documentos</a></li>
+      <li><a href="{% url 'usuariosapp:usuarios_admin' %}"><i class="fas fa-user-shield"></i> Usuarios</a></li>
+    </ul>
+  </aside>
+
+  <main class="main-content">
+
+    <!-- Header -->
+    <header class="top-header">
+      <h1> <a href="{% url 'empresa_clientes' %}" class="btn-volver" style="color: #2c3e50;"><i class="fas fa-arrow-left"></i></a>
+        Detalles de {{ persona.emppe_nom }}</h1>
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin:8px 0 12px;">
+        <a href="{% url 'export_persona_excel' persona.pk %}" class="btn btn-sm btn-outline" style="background:#16a34a; border:1px solid #16a34a; color:#fff;">>
+          <i class="fas fa-file-excel"></i> Excel
+        </a>
+
+        <a href="{% url 'export_persona_pdf' persona.pk %}" class="btn btn-sm btn-outline" style="background:#dc2626; border:1px solid #dc2626; color:#fff;">>
+          <i class="fas fa-file-pdf"></i> PDF
+        </a>
+        </div>
+      <div class="user-info">
+        <span>{{ request.session.username }} ({{ request.session.user_role }})</span>
+        <a href="{% url 'usuariosapp:logout' %}" class="btn btn-sm btn-outline">Cerrar sesión</a>
+      </div>
+    </header>
+
+
+    <!-- TARJETAS SUPERIORES (fondos blancos) -->
+    <div class="stats-grid">
+
+    <!-- DOCUMENTOS PENDIENTES -->
+    <div class="stat-card">
+        <div>
+        <h3>Docs Pendientes</h3>
+        <div class="stat-number">{{ docs_pendientes }}</div>
+        </div>
+        <i class="fas fa-hourglass-half stat-icon"></i>
+    </div>
+
+    <!-- BALANCE -->
+    <div class="stat-card">
+        <div>
+        <h3>Balance</h3>
+        <div class="stat-number"
+            style="color:{% if balance < 0 %}#c0392b{% else %}#27ae60{% endif %}">
+            ${{ balance|intcomma }}
+        </div>
+        </div>
+        <i class="fas fa-scale-balanced stat-icon"></i>
+    </div>
+
+    <!-- SALDO PENDIENTE A FAVOR (INGRESOS) -->
+    <div class="stat-card">
+      <div>
+        <h3>Saldo pendiente a favor</h3>
+        <div class="stat-number" style="color:#27ae60">
+          ${{ saldo_pendiente_ingresos|default:0|intcomma }}
+        </div>
+      </div>
+      <i class="fas fa-arrow-up stat-icon"></i>
+    </div>
+
+    <!-- SALDO PENDIENTE EN CONTRA (EGRESOS) -->
+    <div class="stat-card">
+      <div>
+        <h3>Saldo pendiente en contra</h3>
+        <div class="stat-number" style="color:#c0392b">
+          ${{ saldo_pendiente_egresos|default:0|intcomma }}
+        </div>
+      </div>
+      <i class="fas fa-arrow-down stat-icon"></i>
+    </div>
+    <!-- PROYECTOS PENDIENTES -->
+    <div class="stat-card">
+      <div>
+        <h3>Proyectos Pendientes</h3>
+        <div class="stat-number">{{ proyectos_pendientes|default:0 }}</div>
+      </div>
+      <i class="fas fa-folder-open stat-icon"></i>
+    </div>
+
+    <!-- TOTAL INGRESADO -->
+    <div class="stat-card">
+      <div>
+        <h3>Total Ingresado</h3>
+        <div class="stat-number" style="color:#27ae60">
+          ${{ total_ingresos|default:0|intcomma }}
+        </div>
+      </div>
+      <i class="fas fa-arrow-up stat-icon"></i>
+    </div>
+
+    <!-- TOTAL GASTADO -->
+    <div class="stat-card">
+      <div>
+        <h3>Total Gastado</h3>
+        <div class="stat-number" style="color:#c0392b">
+          ${{ total_egresos|default:0|intcomma }}
+        </div>
+      </div>
+      <i class="fas fa-arrow-down stat-icon"></i>
+    </div>
+
+    <!-- IVA TOTAL GASTADO -->
+    <div class="stat-card">
+      <div>
+        <h3>IVA Total Gastado</h3>
+        <div class="stat-number" style="color:#c0392b">
+          ${{ iva_total_gastado|default:0|intcomma }}
+        </div>
+      </div>
+      <i class="fas fa-receipt stat-icon"></i>
+    </div>
+
+
+
+    </div>
+
+
+    <!-- CARD DE DATOS DEL CLIENTE -->
+    <div class="card-row-two" style="margin-top: 2px">
+        <div class="content-card">
+        <h2><i class="fas fa-address-card"></i> Información General
+            <button class="btn-edit"
+                type="button"
+                onclick="abrirModalEditarPersona()"
+                title="Editar cliente">
+            <i class="fas fa-pen"></i>
+            </button>
+        </h2>
+
+        <div class="info-grid">
+
+            {% if persona.emppe_rut %}
+            <div class="info-row"><strong>RUT:</strong> {{ persona.emppe_rut }}</div>
+            {% endif %}
+
+            {% if persona.emppe_nom %}
+            <div class="info-row"><strong>Nombre:</strong> {{ persona.emppe_nom }}</div>
+            {% endif %}
+
+            {% if persona.emppe_alias %}
+            <div class="info-row"><strong>Alias:</strong> {{ persona.emppe_alias }}</div>
+            {% endif %}
+
+            {% if persona.emppe_est is not None %}
+            <div class="info-row">
+            <strong>Estado:</strong>
+            {% if persona.emppe_est %}
+                <span class="badge badge-success">Activo</span>
+            {% else %}
+                <span class="badge badge-danger">Inactivo</span>
+            {% endif %}
+            </div>
+            {% endif %}
+
+            {% if persona.emppe_sit %}
+            <div class="info-row"><strong>Situación:</strong> {{ persona.get_emppe_sit_display }}</div>
+            {% endif %}
+
+            {% if persona.emppe_fono1 %}
+            <div class="info-row"><strong>Teléfono:</strong> {{ persona.emppe_fono1 }}</div>
+            {% endif %}
+
+            {% if persona.emppe_fono2 %}
+            <div class="info-row"><strong>Teléfono 2:</strong> {{ persona.emppe_fono2 }}</div>
+            {% endif %}
+
+            {% if persona.emppe_mail1 %}
+            <div class="info-row"><strong>Email:</strong> {{ persona.emppe_mail1 }}</div>
+            {% endif %}
+
+            {% if persona.emppe_mail2 %}
+            <div class="info-row"><strong>Email 2:</strong> {{ persona.emppe_mail2 }}</div>
+            {% endif %}
+
+        </div>
+
+        <!-- DIRECCIÓN -->
+        {% if persona.emppe_dire %}
+        <h2 style="margin-top:20px;"><i class="fas fa-map-marker-alt"></i> Dirección</h2>
+
+        <div class="info-grid">
+            {% if persona.emppe_dire.regi %}<div class="info-row"><strong>Región:</strong> {{ persona.emppe_dire.regi.regi_nom }}</div>{% endif %}
+            {% if persona.emppe_dire.ciuda %}<div class="info-row"><strong>Ciudad:</strong> {{ persona.emppe_dire.ciuda.ciuda_nom }}</div>{% endif %}
+            {% if persona.emppe_dire.comun %}<div class="info-row"><strong>Comuna:</strong> {{ persona.emppe_dire.comun.comun_nom }}</div>{% endif %}
+            {% if persona.emppe_dire.dire_calle %}<div class="info-row"><strong>Calle:</strong> {{ persona.emppe_dire.dire_calle }}</div>{% endif %}
+            {% if persona.emppe_dire.dire_num %}<div class="info-row"><strong>Número:</strong> {{ persona.emppe_dire.dire_num }}</div>{% endif %}
+            {% if persona.emppe_dire.dire_otros %}<div class="info-row"><strong>Otros:</strong> {{ persona.emppe_dire.dire_otros }}</div>{% endif %}
+            {% if persona.emppe_dire.dire_cod_postal %}<div class="info-row"><strong>Código Postal:</strong> {{ persona.emppe_dire.dire_cod_postal }}</div>{% endif %}
+        </div>
+        {% endif %}
+        </div>
+        <!-- CARD: PROYECTOS ASOCIADOS -->
+        <div class="content-card">
+        <h2>
+            <i class="fas fa-folder-open"></i> Proyectos Asociados
+            <a href="{% url 'proyectoapp:lista_proyectos' %}?openModal=1&cliente={{ persona.pk }}"
+                class="btn btn-primary btn-sm"
+                style="margin-left:200px; padding:6px 10px; font-size:0.8rem;">
+            <i class="fas fa-plus"></i> Nuevo
+            </a>
+        </h2>
+
+
+        {% if proyectos %}
+        <div class="project-list">
+
+            {% for p in proyectos %}
+            <div class="project-row"
+                onclick="verProyectoPersona(this)"
+                data-idp="{{ p.proye_idp }}"
+                data-desc="{{ p.proye_desc|escapejs }}"
+                data-estado="{{ p.proye_estado }}"
+                data-fecha-sol="{{ p.proye_fecha_sol|date:'Y-m-d' }}"
+                data-fecha-ter="{{ p.proye_fecha_ter|date:'Y-m-d' }}"
+                data-cost="{{ p.proye_cost|default:'' }}"
+                data-obs="{{ p.proye_obs|default:''|escapejs }}"
+                data-link="{% url 'proyectoapp:ver_proyecto' p.proye_idt %}"
+            >
+            <span class="project-row-title">{{ p.proye_desc }}</span>
+            <span class="estado-badge estado-{{ p.proye_estado|slugify }}">
+                {{ p.proye_estado }}
+            </span>
+            </div>
+            {% endfor %}
+
+        </div>
+        {% else %}
+            <p>No se han registrado proyectos asociados.</p>
+        {% endif %}
+        </div>
+        <!-- MODAL VER PROYECTO (MEJORADO + BARRA SUPERIOR) -->
+        <div id="modalVerProyectoPersona" class="modal">
+        <div class="modal-content modal-lg">
+
+            <!-- BARRA SUPERIOR (igual proyecto.html) -->
+            <div class="modal-header">
+            <h3 id="modalProyectoTitulo">
+                <i class="fas fa-briefcase"></i> Proyecto
+            </h3>
+            <button class="close-modal" onclick="cerrarModalProyectoPersona()">&times;</button>
+            </div>
+
+            <!-- CUERPO -->
+            <div class="modal-body" id="detalleProyectoPersona">
+            <!-- contenido dinámico -->
+            </div>
+            </div>
+        </div>
+        <!-- MODAL EDITAR PERSONA + DIRECCIÓN -->
+        <div id="modalPersona" class="modal">
+        <div class="modal-content">
+
+            <div class="modal-header">
+            <h3 id="modalTitle">
+                <i class="fas fa-user-edit"></i> Editar Cliente
+            </h3>
+            <button class="close-modal" onclick="cerrarModalEditarPersona()">&times;</button>
+            </div>
+
+            <form id="formPersona"
+                method="POST"
+                action="{% url 'ver_persona' persona.emppe_id %}"
+                data-edit-base="{% url 'ver_persona' 0 %}"
+                novalidate>
+            {% csrf_token %}
+
+            {% if form_p.non_field_errors %}
+                <div class="alert alert-danger" style="grid-column:1/-1">
+                {{ form_p.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="modal-body modal-form-grid">
+
+                <!-- ================= DATOS PERSONA ================= -->
+                <h4 class="form-section-header">
+                <i class="fas fa-building"></i> Datos de Empresa / Persona
+                </h4>
+
+                <div class="form-group">
+                <label for="id_emppe_rut"><i class="fas fa-id-card"></i> RUT</label>
+                {{ form_p.emppe_rut }}
+                {% if form_p.emppe_rut.errors %}<div class="error-text">{{ form_p.emppe_rut.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="form-group">
+                <label for="id_emppe_alias"><i class="fas fa-tag"></i> Alias</label>
+                {{ form_p.emppe_alias }}
+                {% if form_p.emppe_alias.errors %}<div class="error-text">{{ form_p.emppe_alias.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="form-group">
+                <label for="id_emppe_nom"><i class="fas fa-user"></i> Nombre / Razón Social</label>
+                {{ form_p.emppe_nom }}
+                {% if form_p.emppe_nom.errors %}<div class="error-text">{{ form_p.emppe_nom.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="form-group">
+                <label for="id_emppe_fono1"><i class="fas fa-phone"></i> Teléfono</label>
+                {{ form_p.emppe_fono1 }}
+                {% if form_p.emppe_fono1.errors %}<div class="error-text">{{ form_p.emppe_fono1.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="form-group">
+                <label for="id_emppe_fono2"><i class="fas fa-phone-alt"></i> Teléfono Secundario</label>
+                {{ form_p.emppe_fono2 }}
+                {% if form_p.emppe_fono2.errors %}<div class="error-text">{{ form_p.emppe_fono2.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="form-group">
+                <label for="id_emppe_mail1"><i class="fas fa-envelope"></i> Correo</label>
+                {{ form_p.emppe_mail1 }}
+                {% if form_p.emppe_mail1.errors %}<div class="error-text">{{ form_p.emppe_mail1.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="form-group">
+                <label for="id_emppe_mail2"><i class="fas fa-envelope-open"></i> Correo Secundario</label>
+                {{ form_p.emppe_mail2 }}
+                {% if form_p.emppe_mail2.errors %}<div class="error-text">{{ form_p.emppe_mail2.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="form-group">
+                <label for="id_emppe_est"><i class="fas fa-toggle-on"></i> Estado</label>
+                {{ form_p.emppe_est }}
+                </div>
+
+                <div class="form-group">
+                <label for="id_emppe_sit"><i class="fas fa-briefcase"></i> Situación</label>
+                {{ form_p.emppe_sit }}
+                </div>
+
+                <!-- ================= DIRECCIÓN ================= -->
+                <h4 class="form-section-header">
+                <i class="fas fa-map-marker-alt"></i> Dirección
+                </h4>
+
+                <div class="form-group">
+                <label for="id_regi"><i class="fas fa-flag"></i> Región</label>
+                {{ form_d.regi }}
+                </div>
+
+                <div class="form-group">
+                <label for="id_ciuda"><i class="fas fa-city"></i> Ciudad</label>
+                {{ form_d.ciuda }}
+                </div>
+
+                <div class="form-group">
+                <label for="id_comun"><i class="fas fa-map-pin"></i> Comuna</label>
+                {{ form_d.comun }}
+                </div>
+
+                <div class="form-group">
+                <label for="id_dire_calle"><i class="fas fa-road"></i> Calle</label>
+                {{ form_d.dire_calle }}
+                </div>
+
+                <div class="form-group">
+                <label for="id_dire_num"><i class="fas fa-sort-numeric-up"></i> Número</label>
+                {{ form_d.dire_num }}
+                </div>
+
+                <div class="form-group">
+                <label for="id_dire_otros"><i class="fas fa-door-closed"></i> Otros</label>
+                {{ form_d.dire_otros }}
+                </div>
+
+                <div class="form-group">
+                <label for="id_dire_cod_postal"><i class="fas fa-mail-bulk"></i> Código Postal</label>
+                {{ form_d.dire_cod_postal }}
+                </div>
+
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Guardar
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="cerrarModalEditarPersona()">
+                Cancelar
+                </button>
+            </div>
+            </form>
+        </div>
+        </div>
+        <div class="content-card" style="grid-column:1 / -1; margin-top: 2px">
+
+        <h2 style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0;">
+          <span style="display:flex; align-items:center; gap:8px;">
+            <i class="fas fa-file-invoice-dollar"></i> Documentos Asociados
+          </span>
+
+          <!-- acciones a la derecha -->
+          <div style="margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+
+            <!-- NUEVO -->
+            <a href="{% url 'facturacionapp:lista_documentos' %}?openModal=1&cliente={{ persona.pk }}"
+              class="btn btn-primary btn-sm"
+              style="padding:4px 10px; font-size:0.8rem;">
+              <i class="fas fa-plus"></i> Nuevo
+            </a>
+
+            <!-- FILTRO POR FECHA (GET) -->
+            <form method="get" style="display:flex; align-items:center; gap:8px; margin:0;">
+              <label style="font-size:.8rem; font-weight:700; color:#2c3e50;">Desde</label>
+              <input type="date" name="desde" value="{{ desde|default:'' }}">
+              <label style="font-size:.8rem; font-weight:700; color:#2c3e50;">Hasta</label>
+              <input type="date" name="hasta" value="{{ hasta|default:'' }}">
+              <button type="submit"
+                      class="btn btn-outline btn-sm"
+                      style="padding:4px 10px; font-size:0.8rem;">
+                <i class="fas fa-filter"></i> Filtrar
+              </button>
+
+              {% if request.GET.desde or request.GET.hasta %}
+                <a href="{% url 'ver_persona' persona.pk %}"
+                  class="btn btn-sm"
+                  style="padding:4px 10px; font-size:0.8rem; background:#ecf0f1;">
+                  <i class="fas fa-eraser"></i> Limpiar
+                </a>
+              {% endif %}
+            </form>
+
+          </div>
+        </h2>
+
+        {% if documentos %}
+          <div class="document-btn-grid">
+            {% for doc in documentos %}
+              <button type="button"
+                class="document-btn
+                  {% if doc.trans_tipo == 'INGRESO' %}doc-ingreso{% elif doc.trans_tipo == 'EGRESO' %}doc-egreso{% endif %}"
+                onclick="verDocumento(this)"
+                data-docid="{{ doc.pk }}"
+              >
+                <div class="doc-btn-title">
+                  {{ doc.tipo_doc.tidoc_tipo }} Nº {{ doc.docum_num }}
+                  <span>{{ doc.docum_estado }}</span>
+                </div>
+
+                <div class="doc-btn-total">
+                  ${{ doc.total_calc|intcomma }}
+                </div>
+              </button>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p>No hay documentos asociados.</p>
+        {% endif %}
+
+        <!-- ====================== MODAL VER DOCUMENTO ====================== -->
+        <div id="modalDocumento" class="modal">
+          <div class="modal-content modal-lg">
+
+            <div class="modal-header">
+              <h3 id="docTitulo">Documento</h3>
+              <button class="close-modal" onclick="cerrarModalDocumento()">&times;</button>
+            </div>
+
+            <div class="modal-body" id="docBody">
+              <!-- se llena por JS -->
+            </div>
+
+          </div>
+        </div>
+
+    </div>
+  </main>
+</body>
+<script>
+function formatDateDisplay(isoDate) {
+  if (!isoDate) return '—';
+  const p = isoDate.split('-');
+  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : isoDate;
+}
+
+function verProyectoPersona(row) {
+
+  // Título del modal
+  document.getElementById("modalProyectoTitulo").innerHTML =
+    `<i class="fas fa-briefcase"></i> ${row.dataset.desc}`;
+
+  const body = document.getElementById("detalleProyectoPersona");
+
+  body.innerHTML = `
+    <div class="detalle-grid">
+
+      <div class="detalle-item">
+        <span class="detalle-label">Estado</span>
+        <span class="detalle-value estado-badge estado-${row.dataset.estado.toLowerCase()}">
+          ${row.dataset.estado}
+        </span>
+      </div>
+
+      <div class="detalle-item">
+        <span class="detalle-label">ID Público</span>
+        <span class="detalle-value">${row.dataset.idp || '—'}</span>
+      </div>
+
+      <div class="detalle-item">
+        <span class="detalle-label">Fecha Solicitud</span>
+        <span class="detalle-value">${formatDateDisplay(row.dataset.fechaSol)}</span>
+      </div>
+
+      <div class="detalle-item">
+        <span class="detalle-label">Fecha Término</span>
+        <span class="detalle-value">${formatDateDisplay(row.dataset.fechaTer)}</span>
+      </div>
+
+      ${
+        row.dataset.cost
+        ? `
+        <div class="detalle-item">
+          <span class="detalle-label">Presupuesto</span>
+          <span class="detalle-value">$${Number(row.dataset.cost).toLocaleString()}</span>
+        </div>`
+        : ''
+      }
+
+    </div>
+
+    ${
+      row.dataset.obs
+      ? `
+      <div class="detalle-box">
+        <h4>Observaciones</h4>
+        <p>${row.dataset.obs}</p>
+      </div>`
+      : ''
+    }
+
+    <div class="modal-actions">
+      <a href="${row.dataset.link}" class="btn btn-primary">
+        Ir al detalle completo
+      </a>
+    </div>
+  `;
+
+  document.getElementById("modalVerProyectoPersona").classList.add("show");
+}
+
+function cerrarModalProyectoPersona() {
+  document.getElementById("modalVerProyectoPersona").classList.remove("show");
+}
+
+function abrirModalEditarPersona() {
+  document.getElementById("modalPersona").classList.add("show");
+}
+
+function cerrarModalEditarPersona() {
+  document.getElementById("modalPersona").classList.remove("show");
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  const regi  = document.getElementById("id_regi");
+  const ciuda = document.getElementById("id_ciuda");
+  const comun = document.getElementById("comun_id");
+
+  if (!regi || !ciuda || !comun) return;
+
+  const ENDPOINTS = {
+    ciudades: id => `/direccion/ciudades/${id}/`,
+    comunas:  id => `/direccion/comunas/${id}/`,
+  };
+
+  async function fetchJson(url){
+    const res = await fetch(url, {headers:{'X-Requested-With':'XMLHttpRequest'}});
+    return res.ok ? res.json() : [];
+  }
+
+  async function cargarCiudades(regiId, selected){
+    ciuda.innerHTML = "<option value=''>---------</option>";
+    comun.innerHTML = "<option value=''>---------</option>";
+    if (!regiId) return;
+
+    const data = await fetchJson(ENDPOINTS.ciudades(regiId));
+    data.forEach(c => ciuda.add(new Option(c.ciuda_nom, c.ciuda_id)));
+    if (selected) ciuda.value = selected;
+  }
+
+  async function cargarComunas(ciudaId, selected){
+    comun.innerHTML = "<option value=''>---------</option>";
+    if (!ciudaId) return;
+
+    const data = await fetchJson(ENDPOINTS.comunas(ciudaId));
+    data.forEach(c => comun.add(new Option(c.comun_nom, c.comun_id)));
+    if (selected) comun.value = selected;
+  }
+
+  regi.addEventListener("change", () => cargarCiudades(regi.value));
+  ciuda.addEventListener("change", () => cargarComunas(ciuda.value));
+
+  // Precarga al editar
+  if (regi.value) {
+    cargarCiudades(regi.value, ciuda.value)
+      .then(() => ciuda.value && cargarComunas(ciuda.value, comun.value));
+  }
+});
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + "=")) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+function abrirModalDocumento(){
+  document.getElementById("modalDocumento")?.classList.add("show");
+}
+
+function cerrarModalDocumento(){
+  document.getElementById("modalDocumento")?.classList.remove("show");
+}
+
+
+function renderModalDocumento(docId, data) {
+  // Totales desde API (tu backend ya los entrega en data.resumen)
+  const total = parseInt(data?.resumen?.total || 0, 10);
+  const pagado = parseInt(data?.resumen?.pagado || 0, 10);
+  const pendiente = parseInt(data?.resumen?.pendiente || 0, 10);
+
+  // neto/iva calculados desde total (bruto)
+  const neto = Math.round(total / 1.19);
+  const iva = total - neto;
+
+  document.getElementById("docTitulo").innerHTML =
+    `<i class="fas fa-file-invoice-dollar"></i> ${data.tipo_doc_nombre || "Documento"} Nº ${data.docum_num}`;
+
+  // Tabla detalle con checkbox + pendiente por item
+  let detallesHTML = `
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th style="width:70px;">Cant.</th>
+          <th style="width:110px;">Precio</th>
+          <th class="doc-right" style="width:120px;">Total</th>
+          <th style="width:80px; text-align:center;">Pagado</th>
+          <th class="doc-right" style="width:140px;">Pendiente</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  (data.detalle || []).forEach(d => {
+    const precio = parseInt(d.precio || 0, 10);
+    const cant = parseInt(d.cant || 0, 10);
+    const totalItem = parseInt(d.total || 0, 10);
+
+    const pagadoCant = parseInt(d.pagado_cant || 0, 10);
+    const checked = pagadoCant > 0;
+
+    const pendienteItem = parseInt(d.pendiente_monto || 0, 10);
+
+    detallesHTML += `
+      <tr>
+        <td>
+          ${d.nombre || ""}
+          ${d.obs ? `<br><small style="color:#6b7280;">${d.obs}</small>` : ""}
+        </td>
+        <td style="text-align:center;">${cant}</td>
+        <td>$${precio.toLocaleString("es-CL")}</td>
+        <td class="doc-right">$${totalItem.toLocaleString("es-CL")}</td>
+
+        <td style="text-align:center;">
+          <input type="checkbox"
+            ${checked ? "checked" : ""}
+            onchange="togglePagadoDetalle(${docId}, ${d.detalle_id}, this.checked)">
+        </td>
+
+        <td class="doc-right">$${pendienteItem.toLocaleString("es-CL")}</td>
+      </tr>
+    `;
+  });
+
+  detallesHTML += `</tbody></table>`;
+
+  document.getElementById("docBody").innerHTML = `
+    <div class="doc-info-grid">
+      <div class="doc-info-row"><strong>Estado:</strong> ${data.docum_estado || '—'}</div>
+      <div class="doc-info-row"><strong>Proyecto:</strong> ${data.proyecto_nombre || '—'}</div>
+      <div class="doc-info-row"><strong>Emisión:</strong> ${data.docum_fecha_emi || '—'}</div>
+      <div class="doc-info-row"><strong>Vencimiento:</strong> ${data.docum_fecha_ven || '—'}</div>
+      <div class="doc-info-row"><strong>Forma de Pago:</strong> ${data.tipo_pago_nombre || '—'}</div>
+      <div class="doc-info-row"><strong>Transacción:</strong> ${data.tipo_trans_nombre || '—'}</div>
+    </div>
+
+    <div class="detalle-grid">
+      <div class="detalle-item">
+        <span class="detalle-label">Neto</span>
+        <span class="detalle-value">$${neto.toLocaleString("es-CL")}</span>
+      </div>
+      <div class="detalle-item">
+        <span class="detalle-label">IVA</span>
+        <span class="detalle-value">$${iva.toLocaleString("es-CL")}</span>
+      </div>
+      <div class="detalle-item">
+        <span class="detalle-label">Total</span>
+        <span class="detalle-value">$${total.toLocaleString("es-CL")}</span>
+      </div>
+      <div class="detalle-item">
+        <span class="detalle-label">Saldo pendiente</span>
+        <span class="detalle-value" style="color:#991b1b;">
+          $${pendiente.toLocaleString("es-CL")}
+        </span>
+      </div>
+    </div>
+
+    <h4 class="doc-section-title">Detalle del Documento</h4>
+    ${detallesHTML}
+  `;
+}
+
+function verDocumento(btn){
+  const docId = parseInt(btn.dataset.docid, 10);
+  if (!docId) return;
+
+  fetch(`/facturacion/api/documento/${docId}/`)
+    .then(r => r.json())
+    .then(data => {
+      renderModalDocumento(docId, data);
+      abrirModalDocumento();
+    })
+    .catch(err => {
+      console.error(err);
+      alert("No se pudo cargar el documento.");
+    });
+}
+
+function togglePagadoDetalle(docId, detalleId, checked) {
+  const csrftoken = getCookie("csrftoken");
+
+  fetch(`/facturacion/api/documento/${docId}/detalle/pagado/`, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrftoken,
+      "X-Requested-With": "XMLHttpRequest"
+    },
+    body: JSON.stringify({ detalle_id: detalleId, checked })
+  })
+  .then(async (r) => {
+    const text = await r.text(); 
+
+    let resp;
+    try {
+      resp = JSON.parse(text);   
+    } catch (e) {
+      console.error("Respuesta NO JSON:", r.status, text);
+      throw new Error(`HTTP ${r.status} - no JSON`);
+    }
+
+    if (!r.ok || !resp.success) {
+      console.error("Error API:", r.status, resp);
+      throw new Error(resp.error || `HTTP ${r.status}`);
+    }
+
+    return fetch(`/facturacion/api/documento/${docId}/`).then(r => r.json());
+  })
+  .then(data => {
+    renderModalDocumento(docId, data);
+  })
+  .catch(err => {
+    console.error("togglePagadoDetalle:", err);
+    alert(err.message || "Error al actualizar el detalle.");
+  });
+}
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  const params = new URLSearchParams(window.location.search);
+
+  const clienteId = params.get("cliente");
+  if (clienteId) {
+    const select = document.getElementById("id_empresa");
+    if (select) select.value = clienteId;
+  }
+});
+
+</script>
+{% if form_p.errors %}
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    abrirModalEditarPersona();
+  });
+</script>
+{% endif %}
+
+</html>

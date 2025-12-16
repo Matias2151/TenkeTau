@@ -1,0 +1,769 @@
+{% load static %}
+{% load humanize %}
+{% load l10n %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Detalles de {{ proyecto.proye_desc }} - TEKNETAU</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+  <link rel="stylesheet" href="{% static 'style.css' %}"/>
+
+  <style>
+    .stats-grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:8px;
+      margin:2px 0 6px;
+    }
+    @media(max-width:1200px){
+      .stats-grid{grid-template-columns:repeat(2,1fr)}
+    }
+    .stat-card{
+      background:#fff;
+      border-radius:12px;
+      padding:16px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      border:1px solid #e0e0e0;
+      box-shadow:0 3px 10px rgba(0,0,0,0.05);
+      color:#2c3e50;
+    }
+    .stat-icon{font-size:32px;opacity:.7}
+    .stat-number{font-size:1.4rem;font-weight:bold}
+    .content-card{
+      background:#fff;
+      padding:20px;
+      border-radius:14px;
+      margin-top:20px;
+      box-shadow:0 4px 12px rgba(0,0,0,.1);
+    }
+    .card-row-two{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:25px;
+      margin-top:20px;
+    }
+    @media(max-width:1000px){
+      .card-row-two{grid-template-columns:1fr}
+    }
+    .info-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px 24px;
+      padding:10px 5px;
+    }
+    .detalle-box{
+      border-top:1px solid #e0e0e0;
+      padding-top:15px;
+      margin-top:10px;
+    }
+    .document-btn-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:14px;
+      margin-top:12px;
+    }
+    @media(max-width:1000px){
+      .document-btn-grid{grid-template-columns:1fr}
+    }
+    .document-btn{
+      width:100%;
+      background:#fff;
+      border:2px solid #bdc3c7;
+      border-radius:12px;
+      padding:14px 16px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      cursor:pointer;
+      transition:.2s ease;
+      box-shadow:0 3px 10px rgba(0,0,0,.05);
+      font-weight:600;
+    }
+    .document-btn:hover{
+      background:#f8f9fa;
+      transform:translateY(-2px);
+    }
+    .doc-ingreso{border-color:#2ecc71}
+    .doc-egreso{border-color:#e74c3c}
+
+    .modal{
+      display:none;
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.45);
+      justify-content:center;
+      align-items:center;
+      z-index:9999;
+    }
+    .modal.show{display:flex}
+    .modal-content{
+      background:#fff;
+      border-radius:14px;
+      width:95%;
+      max-width:900px;
+      box-shadow:0 10px 30px rgba(0,0,0,.25);
+    }
+    .modal-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:14px 18px;
+      border-bottom:1px solid #eee;
+    }
+    .close-modal{
+      background:none;
+      border:none;
+      font-size:1.4rem;
+      cursor:pointer;
+    }
+    /* ===========================
+   BARRA CONTABLE ANIMADA
+    =========================== */
+    .barra-contable{
+        background:#fff;
+        border-radius:16px;
+        padding:20px 24px;
+        margin:20px 0 14px;
+        box-shadow:0 6px 18px rgba(0,0,0,.08);
+    }
+    .barra-header{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        margin-bottom:12px;
+        font-size:0.95rem;
+        font-weight:600;
+    }
+    .barra-header span strong{
+        margin-left:6px;
+        font-size:1.05rem;
+    }
+    .label-verde{
+        color:#1e8449;
+    }
+    .label-rojo{
+        color:#922b21;
+    }
+    /* TRACK */
+    .barra-track{
+        position:relative;
+        height:28px;               /* ⬅ MÁS GRANDE */
+        background:#ecf0f1;
+        border-radius:14px;
+        overflow:hidden;
+        display:flex;
+    }
+    /* VERDE */
+    .barra-verde{
+        background:linear-gradient(90deg,#2ecc71,#27ae60);
+        height:100%;
+        width:var(--w);
+        animation: growBar 1.2s ease-out forwards;
+    }
+    /* ROJO */
+    .barra-roja{
+        background:linear-gradient(90deg,#e74c3c,#c0392b);
+        height:100%;
+        width:var(--w);
+        animation: growBar 1.2s ease-out forwards;
+    }
+    /* ANIMACIÓN */
+    @keyframes growBar{
+        from { width:0; }
+        to   { width: var(--w);}
+    }
+    /* RESPONSIVE */
+    @media(max-width:768px){
+        .barra-header{
+            flex-direction:column;
+            align-items:flex-start;
+            gap:6px;
+        }
+    }
+    /* =======================
+   MODAL DOCUMENTO MEJORADO
+   ======================= */
+    .doc-header {
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        margin-bottom:16px;
+    }
+    .doc-header h3 {
+        margin:0;
+        font-size:1.2rem;
+        color:#1f2937;
+    }
+    .doc-estado {
+        padding:4px 10px;
+        border-radius:999px;
+        font-size:.75rem;
+        font-weight:700;
+        text-transform:uppercase;
+    }
+    .doc-estado.pendiente { background:#fef3c7; color:#92400e; }
+    .doc-estado.pagado    { background:#dcfce7; color:#166534; }
+    .doc-estado.anulado   { background:#fee2e2; color:#991b1b; }
+    /* ===== RESUMEN CONTABLE ===== */
+    .doc-resumen {
+        display:grid;
+        grid-template-columns:repeat(4,1fr);
+        gap:12px;
+        margin-bottom:18px;
+    }
+    @media(max-width:768px){
+        .doc-resumen { grid-template-columns:1fr 1fr; }
+    }
+    .doc-resumen-card {
+        background:#f9fafb;
+        border:1px solid #e5e7eb;
+        border-radius:12px;
+        padding:12px 14px;
+    }
+    .doc-resumen-card span {
+        font-size:.75rem;
+        color:#6b7280;
+        text-transform:uppercase;
+    }
+    .doc-resumen-card strong {
+        display:block;
+        font-size:1.1rem;
+        margin-top:4px;
+    }
+    .doc-resumen-card.total strong {
+        color:#1d4ed8;
+    }
+    .doc-resumen-card.pendiente strong {
+        color:#b91c1c;
+    }
+    /* ===== TABLA DETALLE ===== */
+    .doc-table {
+        width:100%;
+        border-collapse:collapse;
+        font-size:.85rem;
+        margin-top:8px;
+    }
+    .doc-table th {
+        background:#f3f4f6;
+        font-weight:800;
+        text-transform:uppercase;
+        font-size:.7rem;
+        color:#374151;
+        padding:10px 8px;
+    }
+    .doc-table td {
+        padding:10px 8px;
+        border-bottom:1px solid #e5e7eb;
+        vertical-align:middle;
+    }
+    .doc-table tr:hover {
+        background:#f9fafb;
+    }
+    .doc-right {
+        text-align:right;
+    }
+    /* ===== CHECKBOX ===== */
+    .doc-check {
+        transform:scale(1.2);
+        cursor:pointer;
+    }
+    /* ===== SECCIÓN ===== */
+    .doc-section-title {
+        margin:18px 0 8px;
+        font-size:.9rem;
+        font-weight:800;
+        color:#1f2937;
+    }
+    /* ===== INFO DOCUMENTO ===== */
+    .doc-info-grid{
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:10px 20px;
+        margin-bottom:16px;
+    }
+    @media(max-width:768px){
+        .doc-info-grid{
+            grid-template-columns:1fr;
+        }
+    }
+    .doc-info-item{
+        font-size:.85rem;
+        color:#374151;
+    }
+    .doc-info-item span{
+        color:#6b7280;
+    }
+    .doc-observacion{
+        margin:12px 0 18px;
+        padding:10px 12px;
+        background:#f9fafb;
+        border:1px dashed #e5e7eb;
+        border-radius:10px;
+        font-size:.85rem;
+        color:#374151;
+    }
+    .cliente-card-link{
+      display:block;
+      color:inherit;
+      text-decoration:none;
+    }
+    .cliente-card-link:hover{
+      background:rgba(46, 204, 113, 0.06);
+      border-radius:12px;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<!-- ================= SIDEBAR ================= -->
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <img src="{% static 'logo.png' %}" alt="Logo TEKNETAU" class="sidebar-logo">
+    </div>
+    <ul class="sidebar-nav">
+        <li><a href="{% url 'dashboard' %}"><i class="fas fa-tachometer-alt"></i> Panel de Control</a></li>
+        <li><a href="{% url 'empresa_clientes' %}"><i class="fas fa-users"></i> Empresa / Persona</a></li>
+        <li><a href="{% url 'productoyservicioapp:lista_productos' %}"><i class="fas fa-box-open"></i> Productos / Servicios</a></li>
+        <li class="active"><a href="{% url 'proyectoapp:lista_proyectos' %}"><i class="fas fa-briefcase"></i> Proyectos</a></li>
+        <li><a href="{% url 'facturacionapp:lista_documentos' %}"><i class="fas fa-file-invoice-dollar"></i> Documentos</a></li>
+        <li><a href="{% url 'usuariosapp:usuarios_admin' %}"><i class="fas fa-user-shield"></i> Usuarios</a></li>
+    </ul>
+</aside>
+
+<main class="main-content">
+
+<header class="top-header">
+  <h1>
+    <a href="{% url 'proyectoapp:lista_proyectos' %}" class="btn-volver" style="color: #2c3e50;"><i class="fas fa-arrow-left"></i></a>
+    </a>
+    Detalles de {{ proyecto.proye_desc }}
+  </h1>
+  <div class="user-info">
+    <span>{{ request.session.username }} ({{ request.session.user_role }})</span>
+    <a href="{% url 'usuariosapp:logout' %}" class="btn btn-sm btn-outline">Salir</a>
+  </div>
+</header>
+
+<!-- ================= MÉTRICAS DEL PROYECTO ================= -->
+<div class="stats-grid">
+
+  <!-- PRESUPUESTO -->
+  <div class="stat-card">
+    <div>
+      <h3>Presupuesto</h3>
+      <div class="stat-number">
+        ${{ presupuesto|intcomma }}
+      </div>
+    </div>
+    <i class="fas fa-wallet stat-icon"></i>
+  </div>
+
+  <!-- UTILIDAD -->
+  <div class="stat-card">
+    <div>
+      <h3>Utilidad</h3>
+      <div class="stat-number"
+           style="color:{% if utilidad < 0 %}#c0392b{% else %}#27ae60{% endif %}">
+        ${{ utilidad|intcomma }}
+      </div>
+    </div>
+    <i class="fas fa-chart-line stat-icon"></i>
+  </div>
+
+  <!-- TOTAL FACTURADO -->
+  <div class="stat-card">
+    <div>
+      <h3>Total Facturado</h3>
+      <div class="stat-number">
+        ${{ total_facturado|intcomma }}
+      </div>
+    </div>
+    <i class="fas fa-file-invoice-dollar stat-icon"></i>
+  </div>
+
+  <!-- SALDO PENDIENTE -->
+  <div class="stat-card">
+    <div>
+      <h3>Saldo Pendiente</h3>
+      <div class="stat-number"
+           style="color:{% if saldo_pendiente > 0 %}#c0392b{% else %}#27ae60{% endif %}">
+        ${{ saldo_pendiente|intcomma }}
+      </div>
+    </div>
+    <i class="fas fa-hourglass-half stat-icon"></i>
+  </div>
+
+</div>
+
+<!-- ================= MÉTRICAS EXTRA ================= -->
+<div class="stats-grid" style="margin-top:10px;">
+
+  <!-- N° DOCUMENTOS -->
+  <div class="stat-card">
+    <div>
+      <h3>N° Documentos</h3>
+      <div class="stat-number">
+        {{ docs_total }}
+      </div>
+    </div>
+    <i class="fas fa-file-lines stat-icon"></i>
+  </div>
+
+  <!-- VALOR NETO EGRESOS -->
+  <div class="stat-card">
+    <div>
+      <h3>Valor Neto </h3>
+      <div class="stat-number">
+        ${{ egresos_neto|intcomma }}
+      </div>
+    </div>
+    <i class="fas fa-receipt stat-icon"></i>
+  </div>
+
+  <!-- IVA EGRESOS -->
+  <div class="stat-card">
+    <div>
+      <h3>IVA </h3>
+      <div class="stat-number">
+        ${{ egresos_iva|intcomma }}
+      </div>
+    </div>
+    <i class="fas fa-percent stat-icon"></i>
+  </div>
+
+  <!-- COSTO TOTAL PROYECTO (BRUTO) -->
+  <div class="stat-card">
+    <div>
+      <h3>Costo Total (Bruto)</h3>
+      <div class="stat-number">
+        ${{ costo_total_bruto|intcomma }}
+      </div>
+    </div>
+    <i class="fas fa-money-bill-wave stat-icon"></i>
+  </div>
+
+</div>
+
+
+<!-- ================= BARRA CONTABLE ================= -->
+<div class="barra-contable">
+
+    <div class="barra-header">
+        <span class="label-verde">
+        <i class="fas fa-arrow-up"></i>
+        Ingresos + Presupuesto
+        <strong>${{ barra_verde|intcomma }}</strong>
+        </span>
+
+        <span class="label-rojo">
+        <i class="fas fa-arrow-down"></i>
+        Egresos Pagados
+        <strong>${{ barra_roja|intcomma }}</strong>
+        </span>
+    </div>
+    <div class="barra-track">
+        <div class="barra-verde" style="--w: {{ verde_pct|unlocalize }}%"></div>
+        <div class="barra-roja"  style="--w: {{ rojo_pct|unlocalize }}%"></div>
+    </div>
+
+</div>
+
+<div class="card-row-two">
+
+  <!-- ================= INFO PROYECTO ================= -->
+  <div class="content-card">
+    <h2>
+      <i class="fas fa-briefcase"></i> Información del Proyecto
+    </h2>
+
+    <div class="info-grid">
+      <div><strong>ID Público:</strong> {{ proyecto.proye_idp }}</div>
+      <div><strong>Estado:</strong> {{ proyecto.proye_estado }}</div>
+      <div><strong>Fecha Solicitud:</strong> {{ proyecto.proye_fecha_sol|date:"d/m/Y" }}</div>
+      <div><strong>Fecha Término:</strong> {{ proyecto.proye_fecha_ter|date:"d/m/Y"|default:"—" }}</div>
+      <div><strong>Presupuesto:</strong> ${{ proyecto.proye_cost|intcomma }}</div>
+    </div>
+
+    {% if proyecto.proye_obs %}
+      <div class="detalle-box">
+        <h4>Observaciones</h4>
+        <p>{{ proyecto.proye_obs }}</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- ================= INFO CLIENTE ================= -->
+  <div class="content-card">
+    <h2>
+      <i class="fas fa-user"></i> Información del Cliente
+    </h2>
+
+    {% if proyecto.cliente %}
+    <a href="{% url 'ver_persona' proyecto.cliente.pk %}" class="cliente-card-link" title="Ver cliente">
+      <div class="info-grid">
+      <div>
+          <strong>Nombre:</strong>
+          {{ proyecto.cliente.emppe_nom }}
+      </div>
+      <div>
+          <strong>RUT:</strong>
+          {{ proyecto.cliente.emppe_rut|default:"—" }}
+      </div>
+      <div>
+          <strong>Email:</strong>
+          {{ proyecto.cliente.emppe_mail1|default:"—" }}
+      </div>
+      <div>
+          <strong>Teléfono:</strong>
+          {{ proyecto.cliente.emppe_fono1|default:"—" }}
+      </div>
+      <div>
+          <strong>Dirección:</strong>
+          {% if proyecto.cliente.emppe_dire %}
+          {{ proyecto.cliente.emppe_dire.dire_calle }},
+          {{ proyecto.cliente.emppe_dire.dire_num }},
+          {{ proyecto.cliente.emppe_dire.comun.comun_nom }}
+          {% else %}
+          —
+          {% endif %}
+      </div>
+      </div>
+      {% else %}
+      <p>No hay cliente asociado.</p>
+      {% endif %}
+      </div>
+    </a>
+
+</div>
+<div class="content-card" style="grid-column:1 / -1;">
+
+  <h2>
+    <i class="fas fa-file-invoice-dollar"></i> Documentos Asociados
+    <a
+        href="{% url 'facturacionapp:lista_documentos' %}?openModal=1&proyecto={{ proyecto.pk }}{% if proyecto.cliente %}&cliente={{ proyecto.cliente.pk }}{% endif %}"
+        class="btn btn-primary btn-sm"
+        style="margin-left:10px; padding:4px 10px; font-size:0.8rem;"
+    >
+        <i class="fas fa-plus"></i> Nuevo
+    </a>
+  </h2>
+
+  {% if documentos %}
+    <div class="document-btn-grid">
+
+      {% for doc in documentos %}
+        <button
+          type="button"
+          class="document-btn {% if doc.trans_tipo == 'INGRESO' %}doc-ingreso{% else %}doc-egreso{% endif %}"
+          onclick="verDocumento(this)"
+          data-docid="{{ doc.pk }}"
+        >
+
+          <!-- IZQUIERDA -->
+          <div class="doc-btn-title">
+            <strong>
+              Nº {{ doc.docum_num }} – {{ doc.tipo_doc.tidoc_tipo }}
+            </strong>
+            <span class="{{ doc.docum_estado }}">
+                {{ doc.docum_estado }}
+            </span>
+          </div>
+
+          <!-- DERECHA -->
+          <div class="doc-btn-total">
+            ${{ doc.total_calc|intcomma }}
+          </div>
+
+        </button>
+      {% endfor %}
+
+    </div>
+  {% else %}
+    <p>No hay documentos asociados.</p>
+  {% endif %}
+
+</div>
+
+
+<!-- ====================== MODAL VER DOCUMENTO ====================== -->
+<div id="modalDocumento" class="modal">
+  <div class="modal-content modal-lg">
+
+    <div class="modal-header">
+      <h3 id="docTitulo">
+        <i class="fas fa-file-invoice-dollar"></i> Documento
+      </h3>
+      <button class="close-modal" onclick="cerrarModalDocumento()">&times;</button>
+    </div>
+
+    <div class="modal-body" id="docBody">
+      <!-- se llena por JS -->
+    </div>
+
+  </div>
+</div>
+
+</main>
+<script>
+function abrirModalDocumento(){
+  document.getElementById("modalDocumento")?.classList.add("show");
+}
+
+function cerrarModalDocumento(){
+  document.getElementById("modalDocumento")?.classList.remove("show");
+}
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    document.cookie.split(";").forEach(c => {
+      const cookie = c.trim();
+      if (cookie.startsWith(name + "=")) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+      }
+    });
+  }
+  return cookieValue;
+}
+
+function renderModalDocumento(docId, data) {
+
+  const total = parseInt(data?.resumen?.total || 0, 10);
+  const pendiente = parseInt(data?.resumen?.pendiente || 0, 10);
+
+  const neto = Math.round(total / 1.19);
+  const iva = total - neto;
+
+  // ================= HEADER =================
+  document.getElementById("docTitulo").innerHTML =
+    `<i class="fas fa-file-invoice-dollar"></i> ${data.tipo_doc_nombre} Nº ${data.docum_num}`;
+
+  // ================= INFO GRID =================
+  const infoHTML = `
+    <div class="doc-info-grid">
+      <div class="doc-info-item"><strong>Tipo:</strong> <span>${data.tipo_doc_nombre || '—'}</span></div>
+      <div class="doc-info-item"><strong>Estado:</strong> <span>${data.docum_estado || '—'}</span></div>
+
+      <div class="doc-info-item"><strong>Cliente:</strong> <span>${data.cliente_nombre || '—'}</span></div>
+      <div class="doc-info-item"><strong>Proyecto:</strong> <span>${data.proyecto_nombre || '—'}</span></div>
+
+      <div class="doc-info-item"><strong>Transacción:</strong> <span>${data.tipo_trans_nombre || '—'}</span></div>
+      <div class="doc-info-item"><strong>Forma de Pago:</strong> <span>${data.tipo_pago_nombre || '—'}</span></div>
+
+      <div class="doc-info-item"><strong>Emisión:</strong> <span>${data.docum_fecha_emi || '—'}</span></div>
+      <div class="doc-info-item"><strong>Vencimiento:</strong> <span>${data.docum_fecha_ven || '—'}</span></div>
+
+      <div class="doc-info-item"><strong>Reclamo:</strong> <span>${data.docum_fecha_recl || '—'}</span></div>
+    </div>
+
+    <div class="doc-observacion">
+      <strong>Observación:</strong>
+      ${data.docum_obs || '-'}
+    </div>
+  `;
+
+  // ================= RESUMEN CONTABLE =================
+  const resumenHTML = `
+    <div class="doc-resumen">
+      <div class="doc-resumen-card">
+        <span>Neto</span>
+        <strong>$${neto.toLocaleString("es-CL")}</strong>
+      </div>
+      <div class="doc-resumen-card">
+        <span>IVA</span>
+        <strong>$${iva.toLocaleString("es-CL")}</strong>
+      </div>
+      <div class="doc-resumen-card total">
+        <span>Total</span>
+        <strong>$${total.toLocaleString("es-CL")}</strong>
+      </div>
+      <div class="doc-resumen-card pendiente">
+        <span>Saldo Pendiente</span>
+        <strong>$${pendiente.toLocaleString("es-CL")}</strong>
+      </div>
+    </div>
+  `;
+
+  // ================= DETALLE =================
+  let detalleHTML = `
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th style="width:70px;text-align:center;">Cant</th>
+          <th class="doc-right" style="width:110px;">Precio</th>
+          <th class="doc-right" style="width:120px;">Total</th>
+          <th style="width:90px;text-align:center;">Pagado</th>
+          <th class="doc-right" style="width:130px;">Pendiente</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  (data.detalle || []).forEach(d => {
+    detalleHTML += `
+      <tr>
+        <td>${d.nombre}</td>
+        <td style="text-align:center;">${d.cant}</td>
+        <td class="doc-right">$${parseInt(d.precio).toLocaleString("es-CL")}</td>
+        <td class="doc-right">$${parseInt(d.total).toLocaleString("es-CL")}</td>
+        <td style="text-align:center;">
+          <input type="checkbox"
+            class="doc-check"
+            ${d.pagado_cant > 0 ? "checked" : ""}
+            onchange="togglePagadoDetalle(${docId}, ${d.detalle_id}, this.checked)">
+        </td>
+        <td class="doc-right">$${parseInt(d.pendiente_monto).toLocaleString("es-CL")}</td>
+      </tr>
+    `;
+  });
+
+  detalleHTML += `</tbody></table>`;
+
+  // ================= RENDER FINAL =================
+  document.getElementById("docBody").innerHTML = `
+    ${infoHTML}
+    ${resumenHTML}
+    <h4 class="doc-section-title">Detalle del Documento</h4>
+    ${detalleHTML}
+  `;
+}
+
+function verDocumento(btn){
+  const docId = btn.dataset.docid;
+  if (!docId) return;
+
+  fetch(`/facturacion/api/documento/${docId}/`)
+    .then(r => r.json())
+    .then(data => {
+      renderModalDocumento(docId, data);
+      abrirModalDocumento();
+    })
+    .catch(() => alert("Error al cargar documento"));
+}
+
+function togglePagadoDetalle(docId, detalleId, checked) {
+  fetch(`/facturacion/api/documento/${docId}/detalle/pagado/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCookie("csrftoken"),
+      "X-Requested-With": "XMLHttpRequest"
+    },
+    body: JSON.stringify({ detalle_id: detalleId, checked })
+  })
+  .then(() => fetch(`/facturacion/api/documento/${docId}/`).then(r => r.json()))
+  .then(data => renderModalDocumento(docId, data))
+  .catch(() => alert("Error al actualizar pago"));
+}
+</script>
+
+</body>
+</html>

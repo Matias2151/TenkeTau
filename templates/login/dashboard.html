@@ -1,0 +1,438 @@
+{% load static humanize %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Control - TEKNETAU</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+
+  <style>
+    /* ============================
+      GRID RESPONSIVE (NO CHOCA)
+    ============================ */
+    .stats-grid{
+      display:grid;
+      grid-template-columns: repeat(5, minmax(220px, 1fr));
+      gap:15px;
+      margin-bottom:18px;
+    }
+    @media(max-width: 1400px){ .stats-grid{ grid-template-columns: repeat(4, minmax(220px, 1fr)); } }
+    @media(max-width: 1150px){ .stats-grid{ grid-template-columns: repeat(3, minmax(220px, 1fr)); } }
+    @media(max-width: 850px){  .stats-grid{ grid-template-columns: repeat(2, minmax(220px, 1fr)); } }
+    @media(max-width: 520px){  .stats-grid{ grid-template-columns: 1fr; } }
+
+    .stat-card{ min-width:0; }
+    .stat-number{ word-break: break-word; }
+
+    /* ============================
+      2 CARDS ABAJO (MÁS CHICAS)
+    ============================ */
+    .dashboard-two-cards{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:15px;
+      margin-top: 10px;
+      align-items:start;
+    }
+    @media(max-width: 1100px){
+      .dashboard-two-cards{ grid-template-columns: 1fr; }
+    }
+
+    /* ======================================================
+      MISMO FORMATO DE BOTONES QUE ver_persona (DOCUMENTOS)
+    ====================================================== */
+    .document-btn-grid{
+      display:grid;
+        grid-template-columns: 1fr;   /* ✅ uno debajo del otro */
+        gap:12px;
+        margin-top:10px;
+        justify-items:center;         /* ✅ centra el botón dentro de la card */
+    }
+
+    a.document-btn{
+      text-decoration:none;  /* que no se vea link */
+    }
+
+    .document-btn{
+        width: min(520px, 100%);      /* ✅ máximo 520px, en móvil 100% */
+        text-align:left;
+        border:1px solid #e5e7eb;
+        border-radius:12px;
+        background:#fff;
+        padding:12px;
+        cursor:pointer;
+        box-shadow:0 2px 8px rgba(0,0,0,.06);
+        transition:.15s ease;
+        margin:0 auto;
+    }
+    .document-btn:hover{
+      background:#f8f9fa;
+      transform:translateY(-1px);
+      box-shadow:0 6px 14px rgba(0,0,0,.10);
+    }
+
+    .doc-btn-title{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      min-width:0;
+    }
+    .doc-btn-title .top{
+      display:flex;
+      gap:10px;
+      align-items:baseline;
+      flex-wrap:wrap;
+    }
+    .doc-btn-title .top strong{
+      font-size:1rem;
+      white-space:nowrap;
+    }
+    .doc-btn-title .top span{
+      font-size:.82rem;
+      color:#7f8c8d;
+      font-weight:800;
+    }
+
+    .doc-btn-sub{
+      font-size:.9rem;
+      color:#2c3e50;
+      font-weight:800;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 420px;
+    }
+
+    .doc-btn-right{
+      text-align:right;
+      white-space:nowrap;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      align-items:flex-end;
+      margin-left:10px;
+    }
+    .doc-btn-right .big{
+      font-size:1.05rem;
+      font-weight:900;
+    }
+    .doc-badge{
+      font-size:.78rem;
+      font-weight:900;
+      padding:4px 10px;
+      border-radius:999px;
+      background:#ecf0f1;
+      color:#2c3e50;
+    }
+
+    /* Bordes verde/rojo como ver_persona */
+    .document-btn.doc-ingreso{ border-color:#2ecc71; }
+    .document-btn.doc-egreso{  border-color:#e74c3c; }
+
+    /* Badge dias */
+    .badge-danger{ background:#fdecea; color:#922b21; }
+    .badge-ok{ background:#eafaf1; color:#1e8449; }
+
+    .chart-card{
+        background:#fff;
+        padding:12px;                 /* antes 15px */
+        border-radius:12px;
+        box-shadow:0 2px 4px rgb(0 0 0 / 10%);
+        width: 100%;                  /* ✅ evita ese 97.7% raro */
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <img src="{% static 'logo.png' %}" alt="Logo TEKNETAU" class="sidebar-logo">
+    </div>
+    <ul class="sidebar-nav">
+      <li class="active">
+        <a href="{% url 'dashboard' %}"><i class="fas fa-tachometer-alt"></i> Panel de Control</a>
+      </li>
+
+      {% if request.session.user_role == 'admin' %}
+        <li><a href="{% url 'empresa_clientes' %}"><i class="fas fa-users"></i> Empresa / Persona</a></li>
+        <li><a href="{% url 'productoyservicioapp:lista_productos' %}"><i class="fas fa-box-open"></i> Productos / Servicios</a></li>
+      {% endif %}
+
+      {% if request.session.user_role == 'admin' or request.session.user_role == 'contador' %}
+        <li><a href="{% url 'proyectoapp:lista_proyectos' %}"><i class="fas fa-briefcase"></i> Proyectos</a></li>
+      {% endif %}
+
+      <li><a href="{% url 'facturacionapp:lista_documentos' %}"><i class="fas fa-file-invoice-dollar"></i> Documentos</a></li>
+
+      {% if request.session.user_role == 'admin' %}
+        <li><a href="{% url 'usuariosapp:usuarios_admin' %}"><i class="fas fa-user-shield"></i> Usuarios</a></li>
+      {% endif %}
+    </ul>
+  </aside>
+
+  <!-- ===== CONTENIDO PRINCIPAL ===== -->
+  <main class="main-content">
+    <div class="dashboard-container">
+
+      <header class="top-header">
+        <h1>Panel de Control</h1>
+        <div class="user-info">
+          <span id="username-display">{{ username }} ({{ request.session.user_role|default:"" }})</span>
+          <a href="{% url 'usuariosapp:logout' %}" class="btn btn-sm btn-outline">Cerrar sesión</a>
+        </div>
+      </header>
+
+      {% if messages %}
+        <div class="content-card" style="margin-bottom: 15px;">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- ====== PRIMERA FILA (5 CARDS) ====== -->
+      <div class="stats-grid">
+
+        <div class="stat-card warning">
+          <div class="stat-content">
+            <h3>Docs Pendientes</h3>
+            <div class="stat-number">{{ docs_pendientes }}</div>
+            <div class="stat-change warning">
+              <i class="fas fa-hourglass-half"></i>
+              <span>pendiente / mitad</span>
+            </div>
+          </div>
+          <i class="fas fa-hourglass-half stat-icon"></i>
+        </div>
+
+        <div class="stat-card info">
+          <div class="stat-content">
+            <h3>Por Vencer</h3>
+            <div class="stat-number">{{ docs_por_vencer }}</div>
+            <div class="stat-change positive">
+              <i class="fas fa-clock"></i>
+              <span>próximos días</span>
+            </div>
+          </div>
+          <i class="fas fa-calendar-day stat-icon"></i>
+        </div>
+
+        <div class="stat-card danger">
+          <div class="stat-content">
+            <h3>Atrasados</h3>
+            <div class="stat-number">{{ docs_atrasados }}</div>
+            <div class="stat-change negative">
+              <i class="fas fa-triangle-exclamation"></i>
+              <span>requieren atención</span>
+            </div>
+          </div>
+          <i class="fas fa-calendar-xmark stat-icon"></i>
+        </div>
+
+        <div class="stat-card success">
+          <div class="stat-content">
+            <h3>Utilidad Total</h3>
+            <div class="stat-number">${{ utilidad_total|intcomma }}</div>
+            <div class="stat-change positive">
+              <i class="fas fa-chart-line"></i>
+              <span>suma global</span>
+            </div>
+          </div>
+          <i class="fas fa-chart-line stat-icon"></i>
+        </div>
+
+        <div class="stat-card info">
+          <div class="stat-content">
+            <h3>IVA Gastado</h3>
+            <div class="stat-number">${{ iva_gastado|intcomma }}</div>
+            <div class="stat-change positive">
+              <i class="fas fa-percent"></i>
+              <span>egresos bruto - neto</span>
+            </div>
+          </div>
+          <i class="fas fa-receipt stat-icon"></i>
+        </div>
+
+      </div>
+
+      <!-- ====== SEGUNDA FILA (5 CARDS) ====== -->
+      <div class="stats-grid">
+
+        <div class="stat-card danger">
+          <div class="stat-content">
+            <h3>Gasto Total</h3>
+            <div class="stat-number">${{ gasto_total|intcomma }}</div>
+            <div class="stat-change negative">
+              <i class="fas fa-arrow-down"></i>
+              <span>todos los egresos</span>
+            </div>
+          </div>
+          <i class="fas fa-money-bill-transfer stat-icon"></i>
+        </div>
+
+        <div class="stat-card info">
+          <div class="stat-content">
+            <h3>Pendientes</h3>
+            <div class="stat-number">{{ proyectos_pendientes }}</div>
+            <div class="stat-change warning">
+              <i class="fas fa-hourglass-start"></i> Esperando inicio
+            </div>
+          </div>
+          <i class="fas fa-list-check stat-icon"></i>
+        </div>
+
+        <div class="stat-card success">
+          <div class="stat-content">
+            <h3>En Progreso</h3>
+            <div class="stat-number">{{ proyectos_en_progreso }}</div>
+            <div class="stat-change positive">
+              <i class="fas fa-play"></i> En ejecución
+            </div>
+          </div>
+          <i class="fas fa-spinner stat-icon"></i>
+        </div>
+
+        <div class="stat-card success">
+          <div class="stat-content">
+            <h3>Terminados</h3>
+            <div class="stat-number">{{ proyectos_terminados }}</div>
+            <div class="stat-change positive">
+              <i class="fas fa-flag-checkered"></i> Completados
+            </div>
+          </div>
+          <i class="fas fa-check-circle stat-icon"></i>
+        </div>
+
+        <div class="stat-card danger">
+          <div class="stat-content">
+            <h3>Cancelados</h3>
+            <div class="stat-number">{{ proyectos_cancelados }}</div>
+            <div class="stat-change negative">
+              <i class="fas fa-ban"></i> Finalizados
+            </div>
+          </div>
+          <i class="fas fa-times-circle stat-icon"></i>
+        </div>
+
+      </div>
+
+      <!-- ====== 2 CARDS (BOTONES HACIA ABAJO) ====== -->
+      <div class="dashboard-two-cards">
+
+        <!-- DOCUMENTOS POR VENCER -->
+        <div class="chart-card">
+          <h3><i class="fas fa-calendar-exclamation"></i> Documentos por vencer</h3>
+
+          {% if por_vencer_list %}
+            <div class="document-btn-grid">
+              {% for d in por_vencer_list %}
+                {% if d.cliente_id %}
+                  <a href="{% url 'ver_persona' d.cliente_id %}" class="document-btn {{ d.css }}">
+                    <div class="doc-btn-title">
+                      <div class="top">
+                        <strong>{{ d.tipo_doc }} Nº {{ d.docum_num }}</strong>
+                        <span>{{ d.estado }}</span>
+                      </div>
+                      <div class="doc-btn-sub">Cliente: {{ d.cliente }}</div>
+                      <div style="font-size:.82rem; color:#7f8c8d; font-weight:800;">
+                        Vence: {{ d.fecha_ven|date:"d/m/Y" }}
+                      </div>
+                    </div>
+
+                    <div class="doc-btn-right">
+                      <span class="doc-badge {% if d.dias_rest <= 2 %}badge-danger{% else %}badge-ok{% endif %}">
+                        {{ d.dias_rest }} días
+                      </span>
+                      <div class="big">${{ d.total|intcomma }}</div>
+                    </div>
+                  </a>
+                {% else %}
+                  <div class="document-btn {{ d.css }}">
+                    <div class="doc-btn-title">
+                      <div class="top">
+                        <strong>{{ d.tipo_doc }} Nº {{ d.docum_num }}</strong>
+                        <span>{{ d.estado }}</span>
+                      </div>
+                      <div class="doc-btn-sub">Cliente: {{ d.cliente }}</div>
+                      <div style="font-size:.82rem; color:#7f8c8d; font-weight:800;">
+                        Vence: {{ d.fecha_ven|date:"d/m/Y" }}
+                      </div>
+                    </div>
+                    <div class="doc-btn-right">
+                      <span class="doc-badge {% if d.dias_rest <= 2 %}badge-danger{% else %}badge-ok{% endif %}">
+                        {{ d.dias_rest }} días
+                      </span>
+                      <div class="big">${{ d.total|intcomma }}</div>
+                    </div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          {% else %}
+            <p style="margin-top:10px; color:#7f8c8d;">No hay documentos próximos a vencer con el filtro actual.</p>
+          {% endif %}
+        </div>
+
+        <!-- DOCUMENTOS PENDIENTES / MITAD -->
+        <div class="chart-card">
+          <h3><i class="fas fa-hourglass-half"></i> Documentos pendientes / mitad</h3>
+
+          {% if pendientes_list %}
+            <div class="document-btn-grid">
+              {% for d in pendientes_list %}
+                {% if d.cliente_id %}
+                  <a href="{% url 'ver_persona' d.cliente_id %}" class="document-btn {{ d.css }}">
+                    <div class="doc-btn-title">
+                      <div class="top">
+                        <strong>{{ d.tipo_doc }} Nº {{ d.docum_num }}</strong>
+                        <span>{{ d.estado }}</span>
+                      </div>
+                      <div class="doc-btn-sub">Cliente: {{ d.cliente }}</div>
+                      <div style="font-size:.82rem; color:#7f8c8d; font-weight:800;">
+                        Emisión: {{ d.fecha_emi|date:"d/m/Y" }}
+                      </div>
+                    </div>
+
+                    <div class="doc-btn-right">
+                      <span class="doc-badge badge-danger">Pendiente</span>
+                      <div class="big">${{ d.pendiente|intcomma }}</div>
+                    </div>
+                  </a>
+                {% else %}
+                  <div class="document-btn {{ d.css }}">
+                    <div class="doc-btn-title">
+                      <div class="top">
+                        <strong>{{ d.tipo_doc }} Nº {{ d.docum_num }}</strong>
+                        <span>{{ d.estado }}</span>
+                      </div>
+                      <div class="doc-btn-sub">Cliente: {{ d.cliente }}</div>
+                      <div style="font-size:.82rem; color:#7f8c8d; font-weight:800;">
+                        Emisión: {{ d.fecha_emi|date:"d/m/Y" }}
+                      </div>
+                    </div>
+                    <div class="doc-btn-right">
+                      <span class="doc-badge badge-danger">Pendiente</span>
+                      <div class="big">${{ d.pendiente|intcomma }}</div>
+                    </div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          {% else %}
+            <p style="margin-top:10px; color:#7f8c8d;">No hay documentos Pendientes/Mitad con saldo pendiente.</p>
+          {% endif %}
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+</body>
+</html>

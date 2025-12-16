@@ -1,0 +1,307 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cuenta Corriente - Clientes/Proveedores - TEKNETAU</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+
+  <style>
+    /* Ajustes pequeños para esta vista */
+    .stats-grid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin: 10px 0 18px;
+    }
+    @media(max-width: 1000px){
+      .stats-grid{ grid-template-columns: repeat(2, 1fr); }
+    }
+    @media(max-width: 520px){
+      .stats-grid{ grid-template-columns: 1fr; }
+    }
+
+    .action-bar{
+      display:flex;
+      gap:12px;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-bottom: 8px;
+    }
+    .search-box{
+      display:flex;
+      gap:6px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .tabs-estado{
+      display:flex;
+      gap:8px;
+      margin:10px 0 6px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .tab-btn{
+      border:none;
+      padding:6px 10px;
+      border-radius:6px;
+      background:#ecf0f1;
+      cursor:pointer;
+      font-size:0.85rem;
+    }
+    .tab-btn.active{
+      background:#3498db;
+      color:#fff;
+    }
+
+    /* Tabla */
+    .tabla-proyectos{ width:100%; border-collapse:collapse; }
+    .tabla-proyectos th, .tabla-proyectos td{
+      padding:10px 12px;
+      border-bottom:1px solid #ddd;
+      vertical-align:middle;
+    }
+    .tabla-proyectos tr:hover{ background:#f8f9fa; }
+    .tabla-proyectos th{
+      background:#f4f4f4;
+      font-weight:700;
+      color:#333;
+      white-space:nowrap;
+    }
+    .right{ text-align:right; }
+    .muted{ color:#7f8c8d; font-size:.9rem; }
+
+    .pill{
+      display:inline-block;
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:.78rem;
+      font-weight:700;
+      background:#ecf0f1;
+      color:#2c3e50;
+      white-space:nowrap;
+    }
+    .pill.ok{ background:#eafaf1; color:#1e8449; }
+    .pill.bad{ background:#fdecea; color:#922b21; }
+  </style>
+</head>
+
+<body>
+
+  <!-- Sidebar (mismo patrón que empresa_clientes.html) -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <img src="{% static 'logo.png' %}" alt="Logo TEKNETAU" class="sidebar-logo">
+    </div>
+    <ul class="sidebar-nav">
+      {% if request.session.user_role == 'contador' %}
+        <li><a href="{% url 'dashboard' %}"><i class="fas fa-tachometer-alt"></i> Panel de Control</a></li>
+        <li><a href="{% url 'proyectoapp:lista_proyectos' %}"><i class="fas fa-briefcase"></i> Proyectos</a></li>
+        <li class="active"><a href="#"><i class="fas fa-receipt"></i> Cuenta Corriente</a></li>
+        <li><a href="{% url 'facturacionapp:lista_documentos' %}"><i class="fas fa-file-invoice-dollar"></i> Facturación</a></li>
+      {% else %}
+        <li><a href="{% url 'dashboard' %}"><i class="fas fa-tachometer-alt"></i> Panel de Control</a></li>
+       <li class="active"><a href="{% url 'empresa_clientes' %}"><i class="fas fa-users"></i> Empresa / Persona</a></li>
+        <li><a href="{% url 'productoyservicioapp:lista_productos' %}"><i class="fas fa-box-open"></i> Productos / Servicios</a></li>
+        <li><a href="{% url 'proyectoapp:lista_proyectos' %}"><i class="fas fa-briefcase"></i> Proyectos</a></li>
+        <li><a href="{% url 'facturacionapp:lista_documentos' %}"><i class="fas fa-file-invoice-dollar"></i> Documentos</a></li>
+        <li><a href="{% url 'usuariosapp:usuarios_admin' %}"><i class="fas fa-user-shield"></i> Usuarios</a></li>
+      {% endif %}
+    </ul>
+  </aside>
+
+  <main class="main-content">
+
+    <header class="top-header">
+      <h1>Cuenta Corriente (Clientes / Proveedores)</h1>
+      <div class="user-info">
+        <span>{{ request.session.username|default:"Invitado" }}{% if request.session.user_role %} ({{ request.session.user_role }}){% endif %}</span>
+        <a href="{% url 'usuariosapp:logout' %}" class="btn btn-sm btn-outline">Cerrar sesión</a>
+      </div>
+    </header>
+
+    {% if messages %}
+      <div id="messages">
+        {% for message in messages %}
+          <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- 4 CARDS VACÍAS -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div>
+          <h3>Card 1</h3>
+          <div class="stat-number">—</div>
+        </div>
+        <i class="fas fa-chart-pie stat-icon"></i>
+      </div>
+
+      <div class="stat-card">
+        <div>
+          <h3>Card 2</h3>
+          <div class="stat-number">—</div>
+        </div>
+        <i class="fas fa-chart-line stat-icon"></i>
+      </div>
+
+      <div class="stat-card">
+        <div>
+          <h3>Card 3</h3>
+          <div class="stat-number">—</div>
+        </div>
+        <i class="fas fa-wallet stat-icon"></i>
+      </div>
+
+      <div class="stat-card">
+        <div>
+          <h3>Card 4</h3>
+          <div class="stat-number">—</div>
+        </div>
+        <i class="fas fa-file-invoice-dollar stat-icon"></i>
+      </div>
+    </div>
+
+    <div class="content-card">
+      <h3><i class="fas fa-list"></i> Cuenta Corriente</h3>
+
+      <!-- Barra acciones: búsqueda -->
+      <div class="action-bar">
+        <div class="tabsSituacion" id="tabsSituacion">
+          <span class="muted" style="font-weight:700;">Mostrar:</span>
+            <button type="button" class="tab-btn active" data-filter="todos">Todos</button>
+            <button type="button" class="tab-btn" data-filter="cliente">Clientes</button>
+            <button type="button" class="tab-btn" data-filter="proveedor">Proveedores</button>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <table class="tabla-proyectos" id="tablaCC">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>RUT</th>
+            <th class="right">Cant. Docs</th>
+            <th class="right">Total Ingresado</th>
+            <th class="right">Saldo Pendiente</th>
+            <th class="right">Total Egresado</th>
+            <th class="right">Saldo Pendiente</th>
+          </tr>
+        </thead>
+
+        <tbody id="cc-list">
+          {% if personas %}
+            {% for p in personas %}
+              <tr
+                data-nom="{{ p.emppe_nom|default_if_none:'' }}"
+                data-rut="{{ p.emppe_rut|default_if_none:'' }}"
+                data-situacion="{{ p.emppe_sit|default_if_none:'' }}"
+              >
+                <td style="font-weight:700;">
+                    <a href="{% url 'ver_persona' p.emppe_id %}"
+                        style="color:inherit; text-decoration:none;"
+                        onmouseover="this.style.textDecoration='underline';"
+                        onmouseout="this.style.textDecoration='none';">
+                        {{ p.emppe_nom }}</a>
+                </td>
+
+                <td>{{ p.emppe_rut }}</td>
+
+                <td class="right">
+                  {{ p.cc_docs_count|default:0 }}
+                </td>
+
+                <td class="right">
+                  ${{ p.cc_total_ingresado|default:0|floatformat:0|intcomma }}
+                </td>
+
+                <td class="right">
+                  {% with pend=p.cc_saldo_pendiente_ingresos|default:0 %}
+                    <span class="pill {% if pend|floatformat:0 != '0' %}bad{% else %}ok{% endif %}">
+                      ${{ pend|floatformat:0|intcomma }}
+                    </span>
+                  {% endwith %}
+                </td>
+
+                <td class="right">
+                  ${{ p.cc_total_egresado|default:0|floatformat:0|intcomma }}
+                </td>
+
+                <td class="right">
+                  {% with pend2=p.cc_saldo_pendiente_egresos|default:0 %}
+                    <span class="pill {% if pend2|floatformat:0 != '0' %}bad{% else %}ok{% endif %}">
+                      ${{ pend2|floatformat:0|intcomma }}
+                    </span>
+                  {% endwith %}
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="7">No hay registros para mostrar.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+
+    </div>
+  </main>
+
+    <script>
+    const searchInput = document.getElementById('searchInput'); // puede no existir
+    const btnBuscar   = document.getElementById('btnBuscar');   // puede no existir
+
+    const tabsSituacion = document.getElementById('tabsSituacion');
+    let situacionActiva = "todos";
+
+    function aplicarFiltros(){
+        const q = ((searchInput && searchInput.value) ? searchInput.value : "")
+        .toLowerCase().trim();
+
+        document.querySelectorAll('#cc-list tr').forEach(tr => {
+        const nom = (tr.dataset.nom || '').toLowerCase();
+        const rut = (tr.dataset.rut || '').toLowerCase();
+        const situacion = (tr.dataset.situacion || '').toLowerCase();
+
+        // Texto
+        const matchTexto = !q || nom.includes(q) || rut.includes(q);
+
+        // Situación (cliente incluye cliente/ambos, proveedor incluye proveedor/ambos)
+        let matchSituacion = true;
+        if (situacionActiva === "cliente") {
+            matchSituacion = (situacion === "cliente" || situacion === "ambos");
+        } else if (situacionActiva === "proveedor") {
+            matchSituacion = (situacion === "proveedor" || situacion === "ambos");
+        }
+
+        tr.style.display = (matchTexto && matchSituacion) ? "" : "none";
+        });
+    }
+
+    // Tabs click
+    if (tabsSituacion) {
+        tabsSituacion.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            tabsSituacion.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            situacionActiva = btn.dataset.filter || "todos";
+            aplicarFiltros();
+        });
+        });
+    }
+
+    // Búsqueda
+    if (searchInput) searchInput.addEventListener("keyup", aplicarFiltros);
+    if (btnBuscar) btnBuscar.addEventListener("click", aplicarFiltros);
+
+    // Inicial
+    document.addEventListener("DOMContentLoaded", aplicarFiltros);
+    </script>
